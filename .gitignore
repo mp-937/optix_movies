@@ -75,3 +75,12 @@ CLAUDE.local.md
 
 # Git worktrees Claude Code creates for sessions
 .claude/worktrees/
+
+
+## SQLite
+## The movie database is built locally from the CSV and never committed.
+
+*.db
+*.db-shm
+*.db-wal
+*.db-journal

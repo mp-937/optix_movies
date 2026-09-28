@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\OptixMovies.Contracts\OptixMovies.Contracts.csproj" />
+    <ProjectReference Include="..\OptixMovies.Core\OptixMovies.Core.csproj" />
+    <ProjectReference Include="..\OptixMovies.Data.Sqlite\OptixMovies.Data.Sqlite.csproj" />
+  </ItemGroup>
+
+</Project>
