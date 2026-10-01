@@ -4,4 +4,8 @@
     <ProjectReference Include="..\OptixMovies.Core\OptixMovies.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+  </ItemGroup>
+
 </Project>
