@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 
 using OptixMovies.Api.Contracts;
+using OptixMovies.Core;
 
 namespace OptixMovies.Api.Endpoints;
 
@@ -28,7 +29,9 @@ public static class MovieEndpoints
 
     private static Results<Ok<MovieResponse>, NotFound, ProblemHttpResult> GetMovie(int id) => NotImplemented();
 
-    private static Results<Ok<IReadOnlyList<string>>, ProblemHttpResult> GetGenres() => NotImplemented();
+    private static async Task<Ok<IReadOnlyList<string>>> GetGenres(
+        MovieService movies, CancellationToken cancellationToken) =>
+        TypedResults.Ok(await movies.GetGenresAsync(cancellationToken));
 
     private static ProblemHttpResult NotImplemented() =>
         TypedResults.Problem(statusCode: StatusCodes.Status501NotImplemented, title: "Not implemented yet");
