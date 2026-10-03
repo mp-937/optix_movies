@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 using Microsoft.AspNetCore.Http.HttpResults;
 
 using OptixMovies.Api.Contracts;
@@ -18,21 +20,29 @@ public static class MovieEndpoints
         return app;
     }
 
-    private static Results<Ok<PageResponse<MovieResponse>>, ProblemHttpResult> SearchMovies(
-        string? title,
-        string? genre,
-        string? actor,
-        MovieSortBy? sortBy,
-        SortDirection? sortDirection,
-        int page = 1,
-        int pageSize = 20) => NotImplemented();
+    // page is capped so that the row offset, (page - 1) * pageSize, can't overflow.
+    private static async Task<Ok<PageResponse<MovieResponse>>> SearchMovies(
+        MovieService movies,
+        [StringLength(100)] string? genre,
+        [EnumDataType(typeof(MovieSortBy))] MovieSortBy sortBy = MovieSortBy.Title,
+        [EnumDataType(typeof(SortDirection))] SortDirection sortDirection = SortDirection.Asc,
+        [Range(1, 1_000_000)] int page = 1,
+        [Range(1, 100)] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var results = await movies.SearchAsync(
+            new MovieQuery(genre, sortBy, sortDirection, page, pageSize), cancellationToken);
 
-    private static Results<Ok<MovieResponse>, NotFound, ProblemHttpResult> GetMovie(int id) => NotImplemented();
+        return TypedResults.Ok(PageResponse.From(results, MovieResponse.From));
+    }
+
+    private static async Task<Results<Ok<MovieResponse>, NotFound>> GetMovie(
+        MovieService movies, int id, CancellationToken cancellationToken) =>
+        await movies.GetAsync(id, cancellationToken) is { } movie
+            ? TypedResults.Ok(MovieResponse.From(movie))
+            : TypedResults.NotFound();
 
     private static async Task<Ok<IReadOnlyList<string>>> GetGenres(
         MovieService movies, CancellationToken cancellationToken) =>
         TypedResults.Ok(await movies.GetGenresAsync(cancellationToken));
-
-    private static ProblemHttpResult NotImplemented() =>
-        TypedResults.Problem(statusCode: StatusCodes.Status501NotImplemented, title: "Not implemented yet");
 }

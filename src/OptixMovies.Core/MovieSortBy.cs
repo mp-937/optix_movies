@@ -1,4 +1,4 @@
-namespace OptixMovies.Api.Contracts;
+namespace OptixMovies.Core;
 
 public enum MovieSortBy
 {

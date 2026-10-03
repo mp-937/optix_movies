@@ -10,4 +10,8 @@ public sealed record Movie(
     double VoteAverage,
     string OriginalLanguage,
     IReadOnlyList<string> Genres,
-    Uri PosterUrl);
+    Uri PosterUrl)
+{
+    /// <summary>Assigned by the database; 0 until the movie is stored.</summary>
+    public int Id { get; init; }
+}

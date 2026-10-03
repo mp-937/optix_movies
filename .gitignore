@@ -67,6 +67,19 @@ nunit-*.xml
 *.vsix
 
 
+## Visual Studio — from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
+
+# Cache, options and per-user settings
+.vs/
+*.user
+*.suo
+
+# Reports and backups left by Visual Studio's project upgrade wizard
+/Backup*/
+UpgradeLog*.htm
+UpgradeLog*.XML
+
+
 ## Claude Code
 ## Shared config (CLAUDE.md, .claude/settings.json) stays tracked; personal files don't.
 
