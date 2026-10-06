@@ -64,7 +64,8 @@ export function useTitleSuggestions(text: string, delay: number): SuggestionStat
         (titles) => setShown({ query, titles }),
         (error: unknown) => {
           if (!request.signal.aborted) {
-            setShown({ query, error: describe(error) })
+            // Keep the previous suggestions on screen, with the error above them.
+            setShown((previous) => ({ query, titles: previous?.titles, error: describe(error) }))
           }
         },
       )
@@ -87,7 +88,13 @@ async function getJson<T>(url: string, signal: AbortSignal): Promise<T> {
   const response = await fetch(url, { signal })
 
   if (!response.ok) {
-    throw new Error(response.status === 404 ? 'Not found.' : `The API returned an error (${response.status}).`)
+    throw new Error(
+      response.status === 404
+        ? 'Not found.'
+        : response.status === 429
+          ? 'Too many requests. Wait a moment and try again.'
+          : `The API returned an error (${response.status}).`,
+    )
   }
 
   return (await response.json()) as T

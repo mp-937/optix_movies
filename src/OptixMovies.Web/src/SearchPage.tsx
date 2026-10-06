@@ -30,6 +30,7 @@ export function SearchPage({ query: initialQuery }: { query: string }) {
           type="search"
           aria-label="Movie title"
           placeholder="Search by title"
+          spellCheck
           value={text}
           onChange={(event) => {
             setText(event.target.value)

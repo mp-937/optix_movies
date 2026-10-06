@@ -6,9 +6,9 @@ A .NET 10 Web API, with a small React UI, for searching the Kaggle "9000+ Movies
 
 You need the .NET 10 SDK, and Node.js 22.12 or later for the UI. The batch files are for Windows; the commands work anywhere, run from the repository root.
 
-1. **Build the database** from the CSV: `import.bat`, or `dotnet run --project src/OptixMovies.Importer -- data/mymoviedb.csv data/movies.db`. It only runs when `data/movies.db` is missing; add `--force` to rebuild it.
-2. **Start the API**: `src\start_api.bat`, or `dotnet run --project src/OptixMovies.Api`. Swagger is at http://localhost:5246/swagger in development.
-3. **Start the UI**: `src\start_web.bat`, or `npm install` then `npm run dev` in `src/OptixMovies.Web`. It runs at http://localhost:5173 and needs the API running.
+1. **Build the database** from the CSV: `import.bat`, or `dotnet run --project src/OptixMovies.Importer -- data/mymoviedb.csv data/movies.db`.
+2. **Start the API**: `start-api.bat`, or `dotnet run --project src/OptixMovies.Api`. Swagger is at http://localhost:5246/swagger in development.
+3. **Start the UI**: `start-web.bat`, or `npm install` then `npm run dev` in `src/OptixMovies.Web`. It runs at http://127.0.0.1:5173 and needs the API running.
 
 ## API
 
@@ -27,17 +27,15 @@ You need the .NET 10 SDK, and Node.js 22.12 or later for the UI. The batch files
 - `src/OptixMovies.Importer` — builds the SQLite database from the CSV
 - `src/OptixMovies.Web` — the React UI
 
-Each design decision, with the alternatives considered and the reasons, is recorded in [docs/decisions.md](docs/decisions.md).
-
 ## Notes and caveats
 
 - **The UI lives in this repository for consistency.** In a real product it would usually have its own repository: it is deployed, versioned and scaled separately from the API, often by a different team, with its own toolchain and pipeline.
 - **The UI's API types are generated, which is more than three types need.** `npm run types` generates them from the API's OpenAPI document. Writing them by hand would be lighter here, but generation keeps the UI in step as the API grows.
 - **There are no actors or directors.** The dataset has no cast or crew information; either would need an external source such as TMDB's API.
-- **Title search doesn't tolerate typos.** Each word typed must start a word in the title, ignoring case, accents and punctuation, and users see suggestions as they type. The search sits behind `ITitleSearch`, so a search engine such as Elasticsearch could replace SQLite without touching the rest.
-- **The database is rebuilt, not migrated.** After a schema change, run the importer with `--force`, with the API stopped: Windows won't replace a database that's open.
+- **Title search doesn't tolerate typos.** Each word typed must start a word in the title, ignoring case, accents and punctuation. Suggestions appear as you type, and the browser's spell checker underlines misspelt words, which covers most of what typo tolerance would add without Elasticsearch or an IMDb API integration; only titles misspelt on purpose miss out. The search sits behind `ITitleSearch`, so a search engine could replace SQLite later without touching the rest.
+- **Abandoned requests stop their queries.** Each keystroke cancels the previous suggestion request, and the cancellation reaches SQLite, which would otherwise finish a query nobody is waiting for.
 - **Sort values are case-sensitive**, so it's `sortBy=ReleaseDate`, not `releaseDate`, because that is how ASP.NET Core binds enums.
-- **Still to do:** rate limiting and other hardening, such as consistent error responses, security headers and health checks; unit and integration tests; semantic search over the overviews; and Docker, which the Windows 10 LTSC machine this was built on can't run through Docker Desktop.
-- **Visual Studio:** .NET 10 needs Visual Studio 2026, because Visual Studio 2022 can't target it. The individual components ".NET SDK" and "Development tools for .NET" are enough for the API; the "ASP.NET and web development" workload also installs .NET Framework, IIS Express and LocalDB, none of which this uses. Opening the UI's `.esproj` needs Visual Studio's JavaScript project support.
-- **Local HTTPS:** `dotnet run` serves plain HTTP on port 5246, so `https://localhost:5246` fails with `SSL_ERROR_RX_RECORD_TOO_LONG`. Visual Studio's default `https` profile adds `https://localhost:7228` but also uses port 5246, so only one copy of the API can run at a time. `dotnet dev-certs https --trust` stops the browser's certificate warning.
+- **There's no Docker setup.** For one API and a SQLite file, containers would be overkill.
+- **Rate limiting is basic.** Each browser session, identified by a signed cookie, may make 10 requests a second with bursts of 20, and each IP address may start 20 sessions a minute, so clearing or forging cookies doesn't escape the limit. People behind one IP address, such as a company network, share that allowance for new sessions. At this scale there isn't much more to do; in production, a proxy with bot protection, such as Cloudflare, would be the next step. The limits are in `appsettings.json`.
+- **Still to do:** other hardening, such as consistent error responses, security headers and health checks; unit and integration tests; and semantic search over the overviews.
 - **`dotnet format`** warns that it skips the UI's `.esproj`; that's expected.

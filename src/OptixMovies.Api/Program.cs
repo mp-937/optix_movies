@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 
+using OptixMovies.Api;
 using OptixMovies.Api.Endpoints;
 using OptixMovies.Core;
 using OptixMovies.Data.Sqlite;
@@ -16,6 +17,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 var connectionString = builder.Configuration.GetConnectionString("Movies")
     ?? throw new InvalidOperationException("The Movies connection string is missing.");
 
+builder.Services.AddSessionRateLimiting(builder.Configuration.GetSection("RateLimiting"));
 builder.Services.AddSqliteData(connectionString);
 builder.Services.AddSingleton(new TitleSuggestionSettings(
     builder.Configuration.GetSection("TitleSuggestions:IgnoredWords").Get<string[]>() ?? []));
@@ -30,6 +32,12 @@ if (app.Environment.IsDevelopment())
     app.MapGet("/", () => TypedResults.Redirect("/swagger")).ExcludeFromDescription();
 }
 
+app.UseSessionRateLimiting();
 app.MapMovieEndpoints();
+
+if (app.Configuration.GetValue("WarmUpOnStartup", defaultValue: true))
+{
+    await app.WarmUpAsync();
+}
 
 app.Run();

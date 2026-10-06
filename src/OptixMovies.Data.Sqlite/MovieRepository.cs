@@ -22,33 +22,41 @@ internal sealed class MovieRepository(MoviesDbContext db) : IMovieRepository
         Id = movie.Id,
     };
 
-    public async Task<Page<Movie>> SearchAsync(MovieQuery query, CancellationToken cancellationToken = default)
-    {
-        var movies = db.Movies.AsQueryable();
+    public Task<Page<Movie>> SearchAsync(MovieQuery query, CancellationToken cancellationToken = default) =>
+        db.RunInterruptibleAsync(
+            async () =>
+            {
+                var movies = db.Movies.AsQueryable();
 
-        if (query.Genre is { } genre)
-        {
-            movies = movies.Where(movie => movie.Genres.Any(g => EF.Functions.Collate(g.Name, "NOCASE") == genre));
-        }
+                if (query.Genre is { } genre)
+                {
+                    movies = movies.Where(movie =>
+                        movie.Genres.Any(g => EF.Functions.Collate(g.Name, "NOCASE") == genre));
+                }
 
-        var totalCount = await movies.CountAsync(cancellationToken);
-        var items = await Order(movies, query.SortBy, query.SortDirection)
-            .Skip((query.Page - 1) * query.PageSize)
-            .Take(query.PageSize)
-            .Select(ToMovie)
-            .ToListAsync(cancellationToken);
+                var totalCount = await movies.CountAsync(cancellationToken);
+                var items = await Order(movies, query.SortBy, query.SortDirection)
+                    .Skip((query.Page - 1) * query.PageSize)
+                    .Take(query.PageSize)
+                    .Select(ToMovie)
+                    .ToListAsync(cancellationToken);
 
-        return new Page<Movie>(items, query.Page, query.PageSize, totalCount);
-    }
+                return new Page<Movie>(items, query.Page, query.PageSize, totalCount);
+            },
+            cancellationToken);
 
     public Task<Movie?> GetAsync(int id, CancellationToken cancellationToken = default) =>
-        db.Movies.Where(movie => movie.Id == id).Select(ToMovie).SingleOrDefaultAsync(cancellationToken);
+        db.RunInterruptibleAsync(
+            () => db.Movies.Where(movie => movie.Id == id).Select(ToMovie).SingleOrDefaultAsync(cancellationToken),
+            cancellationToken);
 
-    public async Task<IReadOnlyList<string>> GetGenresAsync(CancellationToken cancellationToken = default) =>
-        await db.Genres
-            .Select(genre => genre.Name)
-            .OrderBy(name => EF.Functions.Collate(name, "NOCASE"))
-            .ToListAsync(cancellationToken);
+    public Task<IReadOnlyList<string>> GetGenresAsync(CancellationToken cancellationToken = default) =>
+        db.RunInterruptibleAsync<IReadOnlyList<string>>(
+            async () => await db.Genres
+                .Select(genre => genre.Name)
+                .OrderBy(name => EF.Functions.Collate(name, "NOCASE"))
+                .ToListAsync(cancellationToken),
+            cancellationToken);
 
     // Ties are broken by id so that paging is stable: no movie appears on two pages.
     private static IOrderedQueryable<MovieEntity> Order(
