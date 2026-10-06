@@ -1,21 +1,26 @@
-import { useState, type FormEvent } from 'react'
-import { useApi, type TitleSuggestion } from './api.ts'
+import { useEffect, useState, type FormEvent } from 'react'
+import { useTitleSuggestions } from './api.ts'
 import { movieHref, searchHref } from './routes.ts'
 
-const resultLimit = 20
+/** How long typing must pause before suggestions load. */
+const typingPause = 300
 
-export function SearchPage({ query }: { query: string }) {
-  const [text, setText] = useState(query)
-  const { data: titles, error, loading } = useApi<TitleSuggestion[]>(
-    query ? `/api/movies/title-suggestions?query=${encodeURIComponent(query)}&limit=${resultLimit}` : null,
-  )
+export function SearchPage({ query: initialQuery }: { query: string }) {
+  const [text, setText] = useState(initialQuery)
+  // Search without waiting when the page opens with a query, such as after Back, and on Enter or the Search button.
+  const [searchNow, setSearchNow] = useState(initialQuery !== '')
+  const { query, titles, error, busy } = useTitleSuggestions(text, searchNow ? 0 : typingPause)
+
+  // Keep the address in step with the results on show, so Back from a movie returns to them, without adding history.
+  useEffect(() => {
+    if (query !== undefined) {
+      window.history.replaceState(null, '', query ? searchHref(query) : '#/')
+    }
+  }, [query])
 
   function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-
-    if (text.trim()) {
-      window.location.hash = searchHref(text.trim())
-    }
+    setSearchNow(true)
   }
 
   return (
@@ -26,15 +31,19 @@ export function SearchPage({ query }: { query: string }) {
           aria-label="Movie title"
           placeholder="Search by title"
           value={text}
-          onChange={(event) => setText(event.target.value)}
+          onChange={(event) => {
+            setText(event.target.value)
+            setSearchNow(false)
+          }}
           autoFocus
         />
-        <button type="submit">Search</button>
+        <button type="submit" aria-busy={busy}>
+          Search
+        </button>
       </form>
 
-      {loading && <p aria-busy="true">Searching…</p>}
-      {error && <p>{error}</p>}
-      {titles?.length === 0 && <p>No titles match “{query}”.</p>}
+      {!busy && error && <p>{error}</p>}
+      {!busy && titles?.length === 0 && <p>No titles match “{query}”.</p>}
       {titles && titles.length > 0 && (
         <ul>
           {titles.map((title) => (

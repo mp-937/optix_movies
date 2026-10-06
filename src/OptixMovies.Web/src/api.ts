@@ -4,6 +4,8 @@ import type { components } from './api-schema'
 export type Movie = components['schemas']['MovieResponse']
 export type TitleSuggestion = components['schemas']['TitleSuggestionResponse']
 
+const suggestionLimit = 20
+
 type Result<T> = { url: string; data?: T; error?: string }
 
 /** Fetches JSON from the API whenever `url` changes. A null `url` fetches nothing. */
@@ -33,6 +35,52 @@ export function useApi<T>(url: string | null) {
   const current = result?.url === url ? result : undefined
 
   return { data: current?.data, error: current?.error, loading: url !== null && current === undefined }
+}
+
+type Suggestions = { query: string; titles?: TitleSuggestion[]; error?: string }
+
+/** `query` is what the suggestions on show were for: undefined until the first ones arrive, empty for no search. */
+type SuggestionState = { query?: string; titles?: TitleSuggestion[]; error?: string; busy: boolean }
+
+/**
+ * Title suggestions for what the user is typing, fetched once typing pauses for `delay` milliseconds. Every keystroke
+ * cancels the pending wait and any request still in flight. The last suggestions stay on show until new ones arrive,
+ * and `busy` is true from the first keystroke.
+ */
+export function useTitleSuggestions(text: string, delay: number): SuggestionState {
+  const query = text.trim()
+  const [shown, setShown] = useState<Suggestions>()
+
+  useEffect(() => {
+    if (!query) {
+      return
+    }
+
+    const request = new AbortController()
+    const url = `/api/movies/title-suggestions?query=${encodeURIComponent(query)}&limit=${suggestionLimit}`
+
+    const wait = setTimeout(() => {
+      getJson<TitleSuggestion[]>(url, request.signal).then(
+        (titles) => setShown({ query, titles }),
+        (error: unknown) => {
+          if (!request.signal.aborted) {
+            setShown({ query, error: describe(error) })
+          }
+        },
+      )
+    }, delay)
+
+    return () => {
+      clearTimeout(wait)
+      request.abort()
+    }
+  }, [query, delay])
+
+  if (!query) {
+    return { query: '', busy: false }
+  }
+
+  return { ...shown, busy: shown?.query !== query }
 }
 
 async function getJson<T>(url: string, signal: AbortSignal): Promise<T> {
