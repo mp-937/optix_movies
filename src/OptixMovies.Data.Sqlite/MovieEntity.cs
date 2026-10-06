@@ -4,6 +4,7 @@ internal sealed class MovieEntity
 {
     public int Id { get; set; }
     public required string Title { get; set; }
+    public required string SearchTitle { get; set; }
     public required string Overview { get; set; }
     public DateOnly ReleaseDate { get; set; }
     public double Popularity { get; set; }

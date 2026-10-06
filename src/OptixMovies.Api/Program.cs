@@ -17,6 +17,8 @@ var connectionString = builder.Configuration.GetConnectionString("Movies")
     ?? throw new InvalidOperationException("The Movies connection string is missing.");
 
 builder.Services.AddSqliteData(connectionString);
+builder.Services.AddSingleton(new TitleSuggestionSettings(
+    builder.Configuration.GetSection("TitleSuggestions:IgnoredWords").Get<string[]>() ?? []));
 builder.Services.AddScoped<MovieService>();
 
 var app = builder.Build();
@@ -25,6 +27,7 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "v1"));
+    app.MapGet("/", () => TypedResults.Redirect("/swagger")).ExcludeFromDescription();
 }
 
 app.MapMovieEndpoints();

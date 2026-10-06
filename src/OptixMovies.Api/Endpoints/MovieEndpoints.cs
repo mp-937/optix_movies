@@ -15,6 +15,7 @@ public static class MovieEndpoints
 
         api.MapGet("/movies", SearchMovies);
         api.MapGet("/movies/{id:int}", GetMovie);
+        api.MapGet("/movies/title-suggestions", SuggestTitles);
         api.MapGet("/genres", GetGenres);
 
         return app;
@@ -41,6 +42,18 @@ public static class MovieEndpoints
         await movies.GetAsync(id, cancellationToken) is { } movie
             ? TypedResults.Ok(MovieResponse.From(movie))
             : TypedResults.NotFound();
+
+    private static async Task<Ok<IReadOnlyList<TitleSuggestionResponse>>> SuggestTitles(
+        MovieService movies,
+        [Required, StringLength(100)] string query,
+        [Range(1, 20)] int limit = 8,
+        CancellationToken cancellationToken = default)
+    {
+        var suggestions = await movies.SuggestTitlesAsync(query, limit, cancellationToken);
+        IReadOnlyList<TitleSuggestionResponse> response = [.. suggestions.Select(TitleSuggestionResponse.From)];
+
+        return TypedResults.Ok(response);
+    }
 
     private static async Task<Ok<IReadOnlyList<string>>> GetGenres(
         MovieService movies, CancellationToken cancellationToken) =>

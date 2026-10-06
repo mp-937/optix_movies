@@ -32,6 +32,7 @@ public static class MovieDatabase
         db.Movies.AddRange(movies.Select(movie => new MovieEntity
         {
             Title = movie.Title,
+            SearchTitle = SearchText.Normalize(movie.Title),
             Overview = movie.Overview,
             ReleaseDate = movie.ReleaseDate,
             Popularity = movie.Popularity,

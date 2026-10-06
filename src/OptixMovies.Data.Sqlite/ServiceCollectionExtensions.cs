@@ -8,7 +8,10 @@ namespace OptixMovies.Data.Sqlite;
 
 public static class ServiceCollectionExtensions
 {
-    /// <summary>Registers <see cref="IMovieRepository"/>, backed by the SQLite database in <paramref name="connectionString"/>.</summary>
+    /// <summary>
+    /// Registers <see cref="IMovieRepository"/> and <see cref="ITitleSearch"/>, backed by the SQLite database in
+    /// <paramref name="connectionString"/>.
+    /// </summary>
     /// <exception cref="FileNotFoundException">The database file doesn't exist.</exception>
     public static IServiceCollection AddSqliteData(this IServiceCollection services, string connectionString)
     {
@@ -21,6 +24,7 @@ public static class ServiceCollectionExtensions
 
         return services
             .AddDbContext<MoviesDbContext>(options => options.UseSqlite(connectionString))
-            .AddScoped<IMovieRepository, MovieRepository>();
+            .AddScoped<IMovieRepository, MovieRepository>()
+            .AddScoped<ITitleSearch, TitleSearch>();
     }
 }
