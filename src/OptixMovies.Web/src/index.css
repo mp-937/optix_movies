@@ -1,0 +1,27 @@
+/* Pico styles the HTML; these rules only lay out the movie page. */
+
+.movie {
+  display: grid;
+  gap: var(--pico-spacing);
+  align-items: start;
+}
+
+.movie.with-poster {
+  grid-template-columns: 16rem 1fr;
+}
+
+.movie img {
+  width: 100%;
+  height: auto;
+  border-radius: var(--pico-border-radius);
+}
+
+.movie td {
+  white-space: pre-line;
+}
+
+@media (max-width: 768px) {
+  .movie.with-poster {
+    grid-template-columns: 1fr;
+  }
+}

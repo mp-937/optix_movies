@@ -20,6 +20,10 @@ indent_size = 2
 [*.json]
 indent_size = 2
 
+# Web files
+[*.{ts,tsx,js,css,html}]
+indent_size = 2
+
 # C# files
 [*.cs]
 

@@ -4,5 +4,6 @@
     <Project Path="src/OptixMovies.Core/OptixMovies.Core.csproj" />
     <Project Path="src/OptixMovies.Data.Sqlite/OptixMovies.Data.Sqlite.csproj" />
     <Project Path="src/OptixMovies.Importer/OptixMovies.Importer.csproj" />
+    <Project Path="src/OptixMovies.Web/OptixMovies.Web.esproj" />
   </Folder>
 </Solution>

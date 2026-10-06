@@ -1,0 +1,9 @@
+# npm packages and build output
+node_modules
+dist
+
+# Local overrides, such as .env.local
+*.local
+
+# Logs
+*.log
