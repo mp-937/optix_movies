@@ -19,6 +19,7 @@ You need the .NET 10 SDK, and Node.js 22.12 or later for the UI. The batch files
 | `GET /api/movies/semantic-search?query=a kid befriends an alien&limit=10` | Search by meaning: the movies whose title, genres and overview best match a description |
 | `GET /api/movies?genre=Drama&sortBy=ReleaseDate&sortDirection=Desc&page=1&pageSize=20` | Browse, filter by genre, sort and page |
 | `GET /api/movies/{id}` | One movie |
+| `GET /api/movies/{id}/similar?limit=10` | The movies most like this one, leaving out any that aren't alike enough |
 | `GET /api/genres` | Every genre |
 
 ## Projects
@@ -41,6 +42,7 @@ You need the .NET 10 SDK, and Node.js 22.12 or later for the UI. The batch files
 - **Sort values are case-sensitive**, so it's `sortBy=ReleaseDate`, not `releaseDate`, because that is how ASP.NET Core binds enums.
 - **There's no Docker setup.** For one API and a SQLite file, containers would be overkill.
 - **Rate limiting is basic.** Each browser session, identified by a signed cookie, may make 10 requests a second with bursts of 20, and each IP address may start 20 sessions a minute, so clearing or forging cookies doesn't escape the limit. People behind one IP address, such as a company network, share that allowance for new sessions. At this scale there isn't much more to do; in production, a proxy with bot protection, such as Cloudflare, would be the next step. The limits are in `appsettings.json`.
-- **Semantic search uses bge-small-en-v1.5**, a compact embedding model (34 MB, 8-bit) that lives in the repository and runs in-process. It can easily be upgraded, for example to nomic-embed-text-v1.5: the change stays inside the embeddings project, and `embed.bat` then re-embeds the movies.
-- **Still to do:** other hardening, such as consistent error responses, security headers and health checks; unit and integration tests; and semantic search in the UI.
+- **Semantic search uses bge-small-en-v1.5**, a compact embedding model (34 MB, 8-bit) that lives in the repository and runs in-process. It can easily be upgraded, for example to nomic-embed-text-v1.5: the change stays inside the embeddings project, apart from retuning the similar-movies threshold below, and `embed.bat` then re-embeds the movies.
+- **Similar movies leave out weak matches.** A movie page lists up to 10 movies whose embeddings have a cosine similarity of at least 0.7 with its own; below that, pairs are mostly unrelated. A typical movie gets about three, and some, such as Groundhog Day, get none. The threshold suits this model and is in `appsettings.json`.
+- **Still to do:** other hardening, such as consistent error responses, security headers and health checks; and unit and integration tests.
 - **`dotnet format`** warns that it skips the UI's `.esproj`; that's expected.

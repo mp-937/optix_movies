@@ -22,7 +22,7 @@ function App() {
         {route.page === 'movie' ? (
           <MoviePage key={route.id} id={route.id} />
         ) : (
-          <SearchPage key={route.query} query={route.query} />
+          <SearchPage key={`${route.by}:${route.query}`} query={route.query} by={route.by} />
         )}
       </main>
     </>

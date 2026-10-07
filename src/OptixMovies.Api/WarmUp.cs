@@ -20,5 +20,6 @@ internal static class WarmUp
         await movies.SuggestTitlesAsync("warm", limit: 1);
         await movies.SuggestTitlesAsync("warm up", limit: 1);
         await movies.SemanticSearchAsync("warm up", limit: 1);
+        await movies.FindSimilarAsync(1, limit: 1);
     }
 }

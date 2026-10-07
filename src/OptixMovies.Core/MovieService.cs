@@ -4,9 +4,10 @@ namespace OptixMovies.Core;
 public sealed class MovieService(
     IMovieRepository movies,
     ITitleSearch titles,
-    TitleSuggestionSettings settings,
+    TitleSuggestionSettings titleSettings,
     ITextEmbedder embedder,
-    IVectorSearch vectors)
+    IVectorSearch vectors,
+    SimilarMovieSettings similarSettings)
 {
     public Task<Page<Movie>> SearchAsync(MovieQuery query, CancellationToken cancellationToken = default) =>
         movies.SearchAsync(query with { Genre = Clean(query.Genre) }, cancellationToken);
@@ -36,7 +37,7 @@ public sealed class MovieService(
         }
 
         var words = text.Split(' ');
-        string[] significantWords = [.. words.Where(word => !settings.IgnoredWords.Contains(word))];
+        string[] significantWords = [.. words.Where(word => !titleSettings.IgnoredWords.Contains(word))];
 
         return await titles.SuggestAsync(
             new TitleQuery(text, significantWords.Length > 0 ? significantWords : words, limit), cancellationToken);
@@ -54,6 +55,15 @@ public sealed class MovieService(
         return await vectors.FindNearestAsync(
             new VectorQuery(vector, embedder.Model, embedder.Variant, limit), cancellationToken);
     }
+
+    /// <summary>
+    /// Finds the movies most like the one with <paramref name="id"/>, by their embeddings, leaving out any less alike
+    /// than <see cref="SimilarMovieSettings.MinSimilarity"/>. Returns <see langword="null"/> if movies have changed
+    /// since they were last embedded.
+    /// </summary>
+    public Task<IReadOnlyList<Movie>?> FindSimilarAsync(
+        int id, int limit, CancellationToken cancellationToken = default) =>
+        vectors.FindSimilarAsync(new SimilarQuery(id, similarSettings.MinSimilarity, limit), cancellationToken);
 
     /// <summary>Trims text, treating blank text as no filter at all.</summary>
     private static string? Clean(string? text) => string.IsNullOrWhiteSpace(text) ? null : text.Trim();

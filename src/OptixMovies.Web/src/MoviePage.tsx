@@ -1,11 +1,14 @@
 import { useState, type MouseEvent, type ReactNode } from 'react'
-import { useApi, type Movie } from './api.ts'
+import { listItem, useApi, type Movie } from './api.ts'
+import { MovieList } from './MovieList.tsx'
 
 const showPosters = import.meta.env.VITE_SHOW_POSTERS !== 'false'
 const languages = new Intl.DisplayNames(['en-GB'], { type: 'language' })
 
 export function MoviePage({ id }: { id: number }) {
   const { data: movie, error, loading } = useApi<Movie>(`/api/movies/${id}`)
+  // Fetched alongside the movie, and shown under it only if some are alike enough; if the API can't say, nothing shows.
+  const { data: similar } = useApi<Movie[]>(`/api/movies/${id}/similar?limit=10`)
 
   return (
     <>
@@ -18,6 +21,12 @@ export function MoviePage({ id }: { id: number }) {
       {loading && <p aria-busy="true">Loading…</p>}
       {error && <p>{error}</p>}
       {movie && <MovieDetails movie={movie} />}
+      {movie && similar && similar.length > 0 && (
+        <section>
+          <h2>Similar movies</h2>
+          <MovieList movies={similar.map(listItem)} />
+        </section>
+      )}
     </>
   )
 }

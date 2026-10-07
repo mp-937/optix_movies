@@ -9,4 +9,10 @@ public interface IVectorSearch
     /// made them.
     /// </summary>
     Task<IReadOnlyList<Movie>?> FindNearestAsync(VectorQuery query, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns up to <see cref="SimilarQuery.Limit"/> movies at least <see cref="SimilarQuery.MinSimilarity"/> alike,
+    /// most alike first, or <see langword="null"/> if the stored embeddings are out of date.
+    /// </summary>
+    Task<IReadOnlyList<Movie>?> FindSimilarAsync(SimilarQuery query, CancellationToken cancellationToken = default);
 }

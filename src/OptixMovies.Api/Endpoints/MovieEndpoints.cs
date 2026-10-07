@@ -15,6 +15,8 @@ public static class MovieEndpoints
 
         api.MapGet("/movies", SearchMovies);
         api.MapGet("/movies/{id:int}", GetMovie);
+        api.MapGet("/movies/{id:int}/similar", GetSimilarMovies)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
         api.MapGet("/movies/title-suggestions", SuggestTitles);
         api.MapGet("/movies/semantic-search", SemanticSearch)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
@@ -45,6 +47,27 @@ public static class MovieEndpoints
             ? TypedResults.Ok(MovieResponse.From(movie))
             : TypedResults.NotFound();
 
+    private static async Task<Results<Ok<IReadOnlyList<MovieResponse>>, NotFound, ProblemHttpResult>> GetSimilarMovies(
+        MovieService movies,
+        int id,
+        [Range(1, 50)] int limit = 10,
+        CancellationToken cancellationToken = default)
+    {
+        if (await movies.GetAsync(id, cancellationToken) is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (await movies.FindSimilarAsync(id, limit, cancellationToken) is not { } similar)
+        {
+            return EmbeddingsUnavailable();
+        }
+
+        IReadOnlyList<MovieResponse> response = [.. similar.Select(MovieResponse.From)];
+
+        return TypedResults.Ok(response);
+    }
+
     private static async Task<Ok<IReadOnlyList<TitleSuggestionResponse>>> SuggestTitles(
         MovieService movies,
         [Required, StringLength(100)] string query,
@@ -65,9 +88,7 @@ public static class MovieEndpoints
     {
         if (await movies.SemanticSearchAsync(query, limit, cancellationToken) is not { } results)
         {
-            return TypedResults.Problem(
-                statusCode: StatusCodes.Status503ServiceUnavailable,
-                title: "Semantic search is unavailable until the movies are embedded");
+            return EmbeddingsUnavailable();
         }
 
         IReadOnlyList<MovieResponse> response = [.. results.Select(MovieResponse.From)];
@@ -78,4 +99,9 @@ public static class MovieEndpoints
     private static async Task<Ok<IReadOnlyList<string>>> GetGenres(
         MovieService movies, CancellationToken cancellationToken) =>
         TypedResults.Ok(await movies.GetGenresAsync(cancellationToken));
+
+    private static ProblemHttpResult EmbeddingsUnavailable() =>
+        TypedResults.Problem(
+            statusCode: StatusCodes.Status503ServiceUnavailable,
+            title: "Semantic search is unavailable until the movies are embedded");
 }

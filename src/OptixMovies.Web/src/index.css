@@ -1,4 +1,10 @@
-/* Pico styles the HTML; these rules only lay out the movie page. */
+/* Pico styles the HTML; these rules only lay out the search modes and the movie page. */
+
+.search-by {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 calc(var(--pico-spacing) * 2);
+}
 
 .movie {
   display: grid;

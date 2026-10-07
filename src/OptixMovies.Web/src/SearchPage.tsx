@@ -1,35 +1,64 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { useTitleSuggestions } from './api.ts'
-import { movieHref, searchHref } from './routes.ts'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useSearch } from './api.ts'
+import { MovieList } from './MovieList.tsx'
+import { searchHref, type SearchBy } from './routes.ts'
 
-/** How long typing must pause before suggestions load. */
+/** How long typing must pause before results load. */
 const typingPause = 300
 
-export function SearchPage({ query: initialQuery }: { query: string }) {
+const modes: Record<SearchBy, { label: string; field: string; placeholder: string }> = {
+  title: { label: 'Search by title', field: 'Movie title', placeholder: 'Search by title' },
+  description: {
+    label: 'Search by description',
+    field: 'Movie description',
+    placeholder: 'news presenter relives the same day over and over',
+  },
+}
+
+export function SearchPage({ query: initialQuery, by: initialBy }: { query: string; by: SearchBy }) {
   const [text, setText] = useState(initialQuery)
-  // Search without waiting when the page opens with a query, such as after Back, and on Enter or the Search button.
+  const [by, setBy] = useState(initialBy)
+  // Search without waiting when the page opens with a query, such as after Back, on Enter or the Search button, and
+  // when the search mode changes.
   const [searchNow, setSearchNow] = useState(initialQuery !== '')
-  const { query, titles, error, busy } = useTitleSuggestions(text, searchNow ? 0 : typingPause)
+  const { query, by: shownBy, movies, error, busy } = useSearch(text, by, searchNow ? 0 : typingPause)
+  const input = useRef<HTMLInputElement>(null)
 
   // Keep the address in step with the results on show, so Back from a movie returns to them, without adding history.
   useEffect(() => {
     if (query !== undefined) {
-      window.history.replaceState(null, '', query ? searchHref(query) : '#/')
+      window.history.replaceState(null, '', searchHref(query, shownBy))
     }
-  }, [query])
+  }, [query, shownBy])
 
   function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSearchNow(true)
   }
 
+  function switchTo(mode: SearchBy) {
+    setBy(mode)
+    setSearchNow(true)
+    input.current?.focus()
+  }
+
   return (
     <>
+      <fieldset className="search-by">
+        {(Object.keys(modes) as SearchBy[]).map((mode) => (
+          <label key={mode}>
+            <input type="radio" name="by" checked={by === mode} onChange={() => switchTo(mode)} />
+            {modes[mode].label}
+          </label>
+        ))}
+      </fieldset>
+
       <form role="search" onSubmit={search}>
         <input
+          ref={input}
           type="search"
-          aria-label="Movie title"
-          placeholder="Search by title"
+          aria-label={modes[by].field}
+          placeholder={modes[by].placeholder}
           spellCheck
           value={text}
           onChange={(event) => {
@@ -44,16 +73,12 @@ export function SearchPage({ query: initialQuery }: { query: string }) {
       </form>
 
       {!busy && error && <p>{error}</p>}
-      {!busy && titles?.length === 0 && <p>No titles match “{query}”.</p>}
-      {titles && titles.length > 0 && (
-        <ul>
-          {titles.map((title) => (
-            <li key={title.id}>
-              <a href={movieHref(title.id)}>{title.title}</a> <small>({title.year})</small>
-            </li>
-          ))}
-        </ul>
+      {!busy && movies?.length === 0 && (
+        <p>
+          No {shownBy === 'title' ? 'titles' : 'movies'} match “{query}”.
+        </p>
       )}
+      {movies && movies.length > 0 && <MovieList movies={movies} />}
     </>
   )
 }

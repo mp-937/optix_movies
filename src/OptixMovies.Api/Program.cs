@@ -23,6 +23,8 @@ builder.Services.AddSqliteData(connectionString);
 builder.Services.AddSingleton<ITextEmbedder, OnnxTextEmbedder>();
 builder.Services.AddSingleton(new TitleSuggestionSettings(
     builder.Configuration.GetSection("TitleSuggestions:IgnoredWords").Get<string[]>() ?? []));
+builder.Services.AddSingleton(new SimilarMovieSettings(
+    builder.Configuration.GetValue<double>("SimilarMovies:MinSimilarity")));
 builder.Services.AddScoped<MovieService>();
 
 var app = builder.Build();
