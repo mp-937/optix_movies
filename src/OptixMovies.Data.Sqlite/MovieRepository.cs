@@ -8,7 +8,7 @@ namespace OptixMovies.Data.Sqlite;
 
 internal sealed class MovieRepository(MoviesDbContext db) : IMovieRepository
 {
-    private static readonly Expression<Func<MovieEntity, Movie>> ToMovie = movie => new Movie(
+    internal static readonly Expression<Func<MovieEntity, Movie>> ToMovie = movie => new Movie(
         movie.Title,
         movie.Overview,
         movie.ReleaseDate,
@@ -57,6 +57,26 @@ internal sealed class MovieRepository(MoviesDbContext db) : IMovieRepository
                 .OrderBy(name => EF.Functions.Collate(name, "NOCASE"))
                 .ToListAsync(cancellationToken),
             cancellationToken);
+
+    public async Task<DataStatus> GetStatusAsync(CancellationToken cancellationToken = default)
+    {
+        var location = Path.GetFullPath(db.Database.GetDbConnection().DataSource);
+
+        if (!File.Exists(location))
+        {
+            return new DataStatus(location, Exists: false, MovieCount: 0, EmbeddingsRequired: false);
+        }
+
+        var embeddings = await db.EmbeddingStatus.SingleAsync(cancellationToken);
+
+        return new DataStatus(
+            location,
+            Exists: true,
+            await db.Movies.CountAsync(cancellationToken),
+            embeddings.Required,
+            embeddings.Model,
+            embeddings.Variant);
+    }
 
     // Ties are broken by id so that paging is stable: no movie appears on two pages.
     private static IOrderedQueryable<MovieEntity> Order(

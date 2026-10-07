@@ -16,6 +16,8 @@ public static class MovieEndpoints
         api.MapGet("/movies", SearchMovies);
         api.MapGet("/movies/{id:int}", GetMovie);
         api.MapGet("/movies/title-suggestions", SuggestTitles);
+        api.MapGet("/movies/semantic-search", SemanticSearch)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
         api.MapGet("/genres", GetGenres);
 
         return app;
@@ -51,6 +53,24 @@ public static class MovieEndpoints
     {
         var suggestions = await movies.SuggestTitlesAsync(query, limit, cancellationToken);
         IReadOnlyList<TitleSuggestionResponse> response = [.. suggestions.Select(TitleSuggestionResponse.From)];
+
+        return TypedResults.Ok(response);
+    }
+
+    private static async Task<Results<Ok<IReadOnlyList<MovieResponse>>, ProblemHttpResult>> SemanticSearch(
+        MovieService movies,
+        [Required, StringLength(200)] string query,
+        [Range(1, 50)] int limit = 10,
+        CancellationToken cancellationToken = default)
+    {
+        if (await movies.SemanticSearchAsync(query, limit, cancellationToken) is not { } results)
+        {
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "Semantic search is unavailable until the movies are embedded");
+        }
+
+        IReadOnlyList<MovieResponse> response = [.. results.Select(MovieResponse.From)];
 
         return TypedResults.Ok(response);
     }

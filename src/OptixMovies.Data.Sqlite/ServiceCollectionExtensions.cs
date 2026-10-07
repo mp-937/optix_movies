@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,22 +8,14 @@ namespace OptixMovies.Data.Sqlite;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers <see cref="IMovieRepository"/> and <see cref="ITitleSearch"/>, backed by the SQLite database in
-    /// <paramref name="connectionString"/>.
+    /// Registers <see cref="IMovieRepository"/>, <see cref="ITitleSearch"/> and <see cref="IVectorSearch"/>, backed by
+    /// the SQLite database in <paramref name="connectionString"/>. <see cref="IMovieRepository.GetStatusAsync"/>
+    /// reports a missing file.
     /// </summary>
-    /// <exception cref="FileNotFoundException">The database file doesn't exist.</exception>
-    public static IServiceCollection AddSqliteData(this IServiceCollection services, string connectionString)
-    {
-        var path = Path.GetFullPath(new SqliteConnectionStringBuilder(connectionString).DataSource);
-
-        if (!File.Exists(path))
-        {
-            throw new FileNotFoundException($"No movie database at {path}.", path);
-        }
-
-        return services
+    public static IServiceCollection AddSqliteData(this IServiceCollection services, string connectionString) =>
+        services
             .AddDbContext<MoviesDbContext>(options => options.UseSqlite(connectionString))
             .AddScoped<IMovieRepository, MovieRepository>()
-            .AddScoped<ITitleSearch, TitleSearch>();
-    }
+            .AddScoped<ITitleSearch, TitleSearch>()
+            .AddScoped<IVectorSearch, VectorSearch>();
 }

@@ -1,0 +1,5 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Models are binary; never normalise or diff them
+*.onnx binary

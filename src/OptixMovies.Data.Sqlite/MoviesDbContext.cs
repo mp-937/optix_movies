@@ -8,6 +8,8 @@ internal sealed class MoviesDbContext(DbContextOptions<MoviesDbContext> options)
 
     public DbSet<GenreEntity> Genres => Set<GenreEntity>();
 
+    public DbSet<EmbeddingStatusEntity> EmbeddingStatus => Set<EmbeddingStatusEntity>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<MovieEntity>(movies =>

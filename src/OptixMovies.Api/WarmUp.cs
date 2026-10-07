@@ -19,5 +19,6 @@ internal static class WarmUp
         await movies.SearchAsync(new MovieQuery("Drama", MovieSortBy.Title, SortDirection.Asc, Page: 1, PageSize: 1));
         await movies.SuggestTitlesAsync("warm", limit: 1);
         await movies.SuggestTitlesAsync("warm up", limit: 1);
+        await movies.SemanticSearchAsync("warm up", limit: 1);
     }
 }

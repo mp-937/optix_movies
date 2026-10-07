@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OptixMovies.Data.Sqlite\OptixMovies.Data.Sqlite.csproj" />
+    <ProjectReference Include="..\OptixMovies.Embeddings.Onnx\OptixMovies.Embeddings.Onnx.csproj" />
+  </ItemGroup>
+
+</Project>

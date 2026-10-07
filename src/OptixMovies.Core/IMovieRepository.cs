@@ -11,4 +11,7 @@ public interface IMovieRepository
 
     /// <summary>Returns every genre name, A to Z ignoring case.</summary>
     Task<IReadOnlyList<string>> GetGenresAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Describes the stored data, for the checks the API makes when it starts.</summary>
+    Task<DataStatus> GetStatusAsync(CancellationToken cancellationToken = default);
 }

@@ -6,6 +6,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <!-- Its content files would add a public helper class to this project; loading the extension is one call. -->
+    <PackageReference Include="sqlite-vec" ExcludeAssets="contentFiles" />
   </ItemGroup>
 
 </Project>
