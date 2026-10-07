@@ -4,12 +4,22 @@ A .NET 10 Web API, with a small React UI, for searching the Kaggle "9000+ Movies
 
 ## Running it
 
-You need the .NET 10 SDK, and Node.js 22.12 or later for the UI. The batch files are for Windows; the commands work anywhere, run from the repository root.
+Requires .NET 10 SDK, and Node.js 22.12 or later for the UI. The batch files are for Windows; the commands work anywhere, run from the repository root.
 
 1. **Build the database** from the CSV: `import.bat`, or `dotnet run --project src/OptixMovies.Importer -- data/mymoviedb.csv data/movies.db`.
 2. **Embed the movies** for semantic search, which takes a minute or two: `import.bat` does this after building the database, `embed.bat` does it alone, or `dotnet run --project src/OptixMovies.Embedder -- data/movies.db`. Without embeddings, the API starts with a warning, and semantic search returns 503 until the movies are embedded.
 3. **Start the API**: `start-api.bat`, or `dotnet run --project src/OptixMovies.Api`. Swagger is at http://localhost:5246/swagger in development.
 4. **Start the UI**: `start-web.bat`, or `npm install` then `npm run dev` in `src/OptixMovies.Web`. It runs at http://127.0.0.1:5173 and needs the API running.
+
+## Tests
+
+`dotnet test`, from the repository root, runs both test projects in a few seconds. They don't need `data/movies.db`.
+
+- `tests/OptixMovies.UnitTests` covers Core's logic and the CSV reader, with fakes: no files, network or model.
+- `tests/OptixMovies.IntegrationTests` covers the real embedding model, SQLite with sqlite-vec, and the API in memory. Each run imports and embeds 18 movies from the dataset into a temporary database.
+- One test checks that TMDB's poster CDN responds, so it needs the internet; `dotnet test --filter-not-trait "Category=External"` skips it.
+
+`global.json` tells the .NET 10 SDK to run tests with Microsoft Testing Platform, which xUnit v3 uses.
 
 ## API
 
@@ -44,5 +54,5 @@ You need the .NET 10 SDK, and Node.js 22.12 or later for the UI. The batch files
 - **Rate limiting is basic.** Each browser session, identified by a signed cookie, may make 10 requests a second with bursts of 20, and each IP address may start 20 sessions a minute, so clearing or forging cookies doesn't escape the limit. People behind one IP address, such as a company network, share that allowance for new sessions. At this scale there isn't much more to do; in production, a proxy with bot protection, such as Cloudflare, would be the next step. The limits are in `appsettings.json`.
 - **Semantic search uses bge-small-en-v1.5**, a compact embedding model (34 MB, 8-bit) that lives in the repository and runs in-process. It can easily be upgraded, for example to nomic-embed-text-v1.5: the change stays inside the embeddings project, apart from retuning the similar-movies threshold below, and `embed.bat` then re-embeds the movies.
 - **Similar movies leave out weak matches.** A movie page lists up to 10 movies whose embeddings have a cosine similarity of at least 0.7 with its own; below that, pairs are mostly unrelated. A typical movie gets about three, and some, such as Groundhog Day, get none. The threshold suits this model and is in `appsettings.json`.
-- **Still to do:** other hardening, such as consistent error responses, security headers and health checks; and unit and integration tests.
+- **Still to do:** other hardening, such as consistent error responses, security headers and health checks.
 - **`dotnet format`** warns that it skips the UI's `.esproj`; that's expected.

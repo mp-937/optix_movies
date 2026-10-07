@@ -8,4 +8,8 @@
     <Project Path="src/OptixMovies.Importer/OptixMovies.Importer.csproj" />
     <Project Path="src/OptixMovies.Web/OptixMovies.Web.esproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/OptixMovies.IntegrationTests/OptixMovies.IntegrationTests.csproj" />
+    <Project Path="tests/OptixMovies.UnitTests/OptixMovies.UnitTests.csproj" />
+  </Folder>
 </Solution>
