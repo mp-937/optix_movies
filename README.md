@@ -31,6 +31,7 @@ Requires .NET 10 SDK, and Node.js 22.12 or later for the UI. The batch files are
 | `GET /api/movies/{id}` | One movie |
 | `GET /api/movies/{id}/similar?limit=10` | The movies most like this one, leaving out any that aren't alike enough |
 | `GET /api/genres` | Every genre |
+| `GET /health` | `Healthy`, `Degraded` (no movies, or embeddings out of date or from another model) or `Unhealthy` (no database), for load balancers and monitoring |
 
 ## Projects
 
@@ -48,11 +49,12 @@ Requires .NET 10 SDK, and Node.js 22.12 or later for the UI. The batch files are
 - **The UI's API types are generated, which is more than three types need.** `npm run types` generates them from the API's OpenAPI document. Writing them by hand would be lighter here, but generation keeps the UI in step as the API grows.
 - **There are no actors or directors.** The dataset has no cast or crew information; either would need an external source such as TMDB's API.
 - **Title search doesn't tolerate typos.** Each word typed must start a word in the title, ignoring case, accents and punctuation. Suggestions appear as you type, and the browser's spell checker underlines misspelt words, which covers most of what typo tolerance would add without Elasticsearch or an IMDb API integration; only titles misspelt on purpose miss out. The search sits behind `ITitleSearch`, so a search engine could replace SQLite later without touching the rest.
-- **Abandoned requests stop their queries.** Each keystroke cancels the previous suggestion request, and the cancellation reaches SQLite, which would otherwise finish a query nobody is waiting for.
+- **Abandoned requests stop their queries.** Each keystroke cancels the previous suggestion request, and the cancellation reaches SQLite, which would otherwise finish a query nobody is waiting for. Requests that take over 5 seconds time out with a 504 and stop their queries the same way.
+- **Every error is a problem details response.** Errors the API checks for say what went wrong: invalid values list each field, and a missing or malformed parameter is named. Anything unexpected returns a generic 500 that reveals nothing, and is logged in full. Each response carries a `traceId` to find its log entries.
+- **API responses carry security headers** that stop browsers from guessing another content type, rendering or framing them, or sending referrers, and the server doesn't name itself. Swagger UI and the UI's dev server are unaffected.
 - **Sort values are case-sensitive**, so it's `sortBy=ReleaseDate`, not `releaseDate`, because that is how ASP.NET Core binds enums.
 - **There's no Docker setup.** For one API and a SQLite file, containers would be overkill.
 - **Rate limiting is basic.** Each browser session, identified by a signed cookie, may make 10 requests a second with bursts of 20, and each IP address may start 20 sessions a minute, so clearing or forging cookies doesn't escape the limit. People behind one IP address, such as a company network, share that allowance for new sessions. At this scale there isn't much more to do; in production, a proxy with bot protection, such as Cloudflare, would be the next step. The limits are in `appsettings.json`.
 - **Semantic search uses bge-small-en-v1.5**, a compact embedding model (34 MB, 8-bit) that lives in the repository and runs in-process. It can easily be upgraded, for example to nomic-embed-text-v1.5: the change stays inside the embeddings project, apart from retuning the similar-movies threshold below, and `embed.bat` then re-embeds the movies.
 - **Similar movies leave out weak matches.** A movie page lists up to 10 movies whose embeddings have a cosine similarity of at least 0.7 with its own; below that, pairs are mostly unrelated. A typical movie gets about three, and some, such as Groundhog Day, get none. The threshold suits this model and is in `appsettings.json`.
-- **Still to do:** other hardening, such as consistent error responses, security headers and health checks.
 - **`dotnet format`** warns that it skips the UI's `.esproj`; that's expected.

@@ -1,5 +1,7 @@
 using System.Text.Json.Serialization;
 
+using Microsoft.AspNetCore.Http.Timeouts;
+
 using OptixMovies.Api;
 using OptixMovies.Api.Endpoints;
 using OptixMovies.Core;
@@ -7,6 +9,7 @@ using OptixMovies.Data.Sqlite;
 using OptixMovies.Embeddings.Onnx;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 builder.Services.AddOpenApi();
 builder.Services.AddValidation();
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -14,6 +17,13 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
+
+builder.Services.AddErrorHandling();
+
+var requestTimeout = builder.Configuration.GetValue<TimeSpan?>("RequestTimeout")
+    ?? throw new InvalidOperationException("The RequestTimeout setting is missing.");
+builder.Services.AddRequestTimeouts(options =>
+    options.DefaultPolicy = new RequestTimeoutPolicy { Timeout = requestTimeout });
 
 var connectionString = builder.Configuration.GetConnectionString("Movies")
     ?? throw new InvalidOperationException("The Movies connection string is missing.");
@@ -26,8 +36,11 @@ builder.Services.AddSingleton(new TitleSuggestionSettings(
 builder.Services.AddSingleton(new SimilarMovieSettings(
     builder.Configuration.GetValue<double>("SimilarMovies:MinSimilarity")));
 builder.Services.AddScoped<MovieService>();
+builder.Services.AddHealthChecks().AddCheck<MovieDataHealthCheck>("movie-data");
 
 var app = builder.Build();
+app.UseSecurityHeaders();
+app.UseErrorHandling();
 
 if (app.Environment.IsDevelopment())
 {
@@ -37,9 +50,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseSessionRateLimiting();
+app.UseRequestTimeouts();
 app.MapMovieEndpoints();
+app.MapHealthChecks("/health");
 
-if (!await app.CheckDataAsync())
+if (!await app.CheckHealthAsync())
 {
     return 1;
 }

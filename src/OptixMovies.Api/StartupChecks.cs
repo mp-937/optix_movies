@@ -1,46 +1,29 @@
-using OptixMovies.Core;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace OptixMovies.Api;
 
 internal static class StartupChecks
 {
     /// <summary>
-    /// Logs any problems with the movie data before the API starts serving. Returns <see langword="false"/> if there's
-    /// no database, in which case the API can't serve anything.
+    /// Runs the health checks before the API starts serving, and logs anything they find. Returns
+    /// <see langword="false"/> if the API is unhealthy, as it is without a database, in which case it can't serve.
     /// </summary>
-    public static async Task<bool> CheckDataAsync(this WebApplication app)
+    public static async Task<bool> CheckHealthAsync(this WebApplication app)
     {
-        await using var scope = app.Services.CreateAsyncScope();
-        var status = await scope.ServiceProvider.GetRequiredService<MovieService>().GetStatusAsync();
+        var report = await app.Services.GetRequiredService<HealthCheckService>().CheckHealthAsync();
 
-        if (!status.Exists)
+        foreach (var entry in report.Entries.Values)
         {
-            app.Logger.LogCritical("No movie database at {Location}. Run import.bat to build it.", status.Location);
-            return false;
+            if (entry.Status == HealthStatus.Unhealthy)
+            {
+                app.Logger.LogCritical(entry.Exception, "{Problem}", entry.Description);
+            }
+            else if (entry.Status == HealthStatus.Degraded)
+            {
+                app.Logger.LogWarning("{Problem}", entry.Description);
+            }
         }
 
-        if (status.MovieCount == 0)
-        {
-            app.Logger.LogWarning("The movie database at {Location} has no movies.", status.Location);
-        }
-
-        var embedder = scope.ServiceProvider.GetRequiredService<ITextEmbedder>();
-
-        if (status.EmbeddingsRequired)
-        {
-            app.Logger.LogWarning("The movies need embedding; semantic search is unavailable until embed.bat runs.");
-        }
-        else if (status.EmbeddingModel != embedder.Model || status.EmbeddingVariant != embedder.Variant)
-        {
-            app.Logger.LogWarning(
-                "The movies were embedded with {StoredModel} ({StoredVariant}), but the API uses {Model} ({Variant}); " +
-                "semantic search is unavailable until embed.bat runs.",
-                status.EmbeddingModel,
-                status.EmbeddingVariant,
-                embedder.Model,
-                embedder.Variant);
-        }
-
-        return true;
+        return report.Status != HealthStatus.Unhealthy;
     }
 }
