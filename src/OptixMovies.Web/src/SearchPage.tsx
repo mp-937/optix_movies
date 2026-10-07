@@ -6,13 +6,14 @@ import { searchHref, type SearchBy } from './routes.ts'
 /** How long typing must pause before results load. */
 const typingPause = 300
 
+// In the order the radio buttons show them, the default first.
 const modes: Record<SearchBy, { label: string; field: string; placeholder: string }> = {
-  title: { label: 'Search by title', field: 'Movie title', placeholder: 'Search by title' },
   description: {
     label: 'Search by description',
     field: 'Movie description',
-    placeholder: 'news presenter relives the same day over and over',
+    placeholder: 'Astronaut stranded alone on Mars tries to survive while NASA works to bring him home',
   },
+  title: { label: 'Search by title', field: 'Movie title', placeholder: 'Search by title' },
 }
 
 export function SearchPage({ query: initialQuery, by: initialBy }: { query: string; by: SearchBy }) {
